@@ -8,6 +8,8 @@ Build/
 LaunchSettings.json
 
 .vs/
+.idea/
+.packages/
 
 # Tests
 Tests/LibraryTests/TestResults/
