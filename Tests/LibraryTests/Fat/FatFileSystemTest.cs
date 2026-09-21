@@ -670,4 +670,66 @@ public class FatFileSystemTest
             Assert.Equal(Enumerable.Range(0, 20).Select(i => $"dir{Path.DirectorySeparatorChar}file{i}.txt"), entries);
         }
     }
+    
+    [Fact]
+    public void MoveDirectoryInSubdirectory()
+    {
+        using var diskStream = new SparseMemoryStream();
+
+        diskStream.Position = 0;
+        using (var fsFormat = FatFileSystem.FormatFloppy(diskStream, FloppyDiskType.HighDensity, "FLOPPY_IMG "))
+        {
+            fsFormat.CreateDirectory("dir");
+            fsFormat.CreateDirectory($"dir{Path.DirectorySeparatorChar}subdir");
+            using var fileStream = fsFormat.OpenFile($"dir{Path.DirectorySeparatorChar}subdir{Path.DirectorySeparatorChar}file.txt", FileMode.Create);
+            fileStream.Write(new byte[10]);
+        }
+
+        using (var fsMove = new FatFileSystem(diskStream))
+        {
+            fsMove.MoveDirectory($"dir{Path.DirectorySeparatorChar}subdir", $"dir{Path.DirectorySeparatorChar}moved-subdir");
+        }
+        
+        using var fsAssert = new FatFileSystem(diskStream);
+        {
+            var entries = fsAssert.GetFileSystemEntries("").ToList();
+            Assert.Single(entries);
+            Assert.Equal("dir", entries[0]);
+
+            entries = fsAssert.GetFileSystemEntries($"dir{Path.DirectorySeparatorChar}moved-subdir").ToList();
+            Assert.Single(entries);
+            Assert.Equal($"dir{Path.DirectorySeparatorChar}moved-subdir{Path.DirectorySeparatorChar}file.txt", entries[0]);
+        }
+    }
+
+    [Fact]
+    public void MoveDirectoryToSubdirectory()
+    {
+        using var diskStream = new SparseMemoryStream();
+
+        diskStream.Position = 0;
+        using (var fsFormat = FatFileSystem.FormatFloppy(diskStream, FloppyDiskType.HighDensity, "FLOPPY_IMG "))
+        {
+            fsFormat.CreateDirectory("dir1");
+            fsFormat.CreateDirectory("dir2");
+            using var fileStream = fsFormat.OpenFile($"dir1{Path.DirectorySeparatorChar}file.txt", FileMode.Create);
+            fileStream.Write(new byte[10]);
+        }
+
+        using (var fsMove = new FatFileSystem(diskStream))
+        {
+            fsMove.MoveDirectory("dir1", $"dir2{Path.DirectorySeparatorChar}dir1");
+        }
+        
+        using (var fsAssert = new FatFileSystem(diskStream))
+        {
+            var entries = fsAssert.GetFileSystemEntries("").ToList();
+            Assert.Single(entries);
+            Assert.Equal("dir2", entries[0]);
+
+            entries = fsAssert.GetFileSystemEntries($"dir2{Path.DirectorySeparatorChar}dir1").ToList();
+            Assert.Single(entries);
+            Assert.Equal($"dir2{Path.DirectorySeparatorChar}dir1{Path.DirectorySeparatorChar}file.txt", entries[0]);
+        }
+    }
 }

@@ -1250,7 +1250,8 @@ public sealed class FatFileSystem : DiscFileSystem, IDosFileSystem, IClusterBase
             throw new IOException("Source directory doesn't exist");
         }
 
-        destParent.AttachChildDirectory(destinationDirectoryName, GetDirectory(sourceDirectoryName));
+        var destinationFileName = Utilities.GetFileFromPath(destinationDirectoryName);
+        destParent.AttachChildDirectory(destinationFileName, GetDirectory(sourceDirectoryName));
 
         sourceParent.DeleteEntry(sourceId, false);
     }
